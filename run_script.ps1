@@ -1,5 +1,5 @@
 param (
-    [string]$logFilePath = "D:\YandexDisk\DropBox\Инвестиции\Биржевые\Роботы\New_Planka\log.txt"  # Значение по умолчанию
+    [string]$logFilePath = "D:\YandexDisk\DropBox\Инвестиции\Биржевые\Роботы\Планка\Продать\log.txt"  # Значение по умолчанию
 )
 
 # Функция для URL-кодирования строки

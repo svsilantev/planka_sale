@@ -43,9 +43,10 @@ tickers_updated = {}
 buffers_by_ticker = {}
 signalCounter1 = 0 -- счетчик сигнала 1 для отключения звуковых сопровождений
 signalCounter2 = 0 -- счетчик сигнала 2 для отключения звуковых сопровождений
+signalCounter_Connected = 0 -- счетчик сигналов для организации оповещений о дисконнекте.
 lastLogTime = os.time() -- для логов раз в минуту
 -- Запуск .ps файла при старте для контроля работоспособности бота
-os.execute('start cmd /k powershell -NoExit -ExecutionPolicy Bypass -File "D:\\YandexDisk\\DropBox\\Инвестиции\\Биржевые\\Роботы\\New_Planka\\run_script.ps1" -logFilePath "' .. Path_time_log_txt .. '"')
+os.execute('start cmd /k powershell -NoExit -ExecutionPolicy Bypass -File "D:\\YandexDisk\\DropBox\\Инвестиции\\Биржевые\\Роботы\\Планка\\Продать\\run_script.ps1" -logFilePath "' .. Path_time_log_txt .. '"')
 
 
 
@@ -55,43 +56,52 @@ os.execute('start cmd /k powershell -NoExit -ExecutionPolicy Bypass -File "D:\\Y
 function OnInit()	
 
 	MyAssetID = AllocTable()	
-	 AddColumn (MyAssetID, 1, "Тикер", true, QTABLE_STRING_TYPE,10)
-	 AddColumn (MyAssetID, 2, "Класс", true, QTABLE_STRING_TYPE,10)
-	 AddColumn (MyAssetID, 3, "Планка", true, QTABLE_STRING_TYPE,10)
-	 AddColumn (MyAssetID, 4, "Объем <", true, QTABLE_STRING_TYPE,14)	 
-	 AddColumn (MyAssetID, 5, "Продать л", true, QTABLE_STRING_TYPE,14)
-	 AddColumn (MyAssetID, 6, "Наличие", true, QTABLE_STRING_TYPE,12)
-	 AddColumn (MyAssetID, 7, "В ордерах", true, QTABLE_STRING_TYPE,14)	 
-	 AddColumn (MyAssetID, 8, "На планке", true, QTABLE_STRING_TYPE,14)
-	 AddColumn (MyAssetID, 9, "Объем (дн)", true, QTABLE_STRING_TYPE,14)
-	 AddColumn (MyAssetID, 10, "Объем (сек)", true, QTABLE_STRING_TYPE,1)
-	 AddColumn (MyAssetID, 11, "V 5 мин", true, QTABLE_STRING_TYPE,1)
-	 AddColumn (MyAssetID, 12, "V (- 5с)", true, QTABLE_STRING_TYPE,1)
- 	 AddColumn (MyAssetID, 13, "Объем 5 мин", true, QTABLE_STRING_TYPE,17)
-	 AddColumn (MyAssetID, 14, "S1", true, QTABLE_STRING_TYPE,1)	
-	 AddColumn (MyAssetID, 15, "S2", true, QTABLE_STRING_TYPE,1)
-	 AddColumn (MyAssetID, 16, "S3", true, QTABLE_STRING_TYPE,1)
-	 
-	 AddColumn (MyAssetID, 17, "Запустить", true, QTABLE_STRING_TYPE,15)
-	 AddColumn (MyAssetID, 18, "-10%", true, QTABLE_STRING_TYPE,7)
-	 AddColumn (MyAssetID, 19, "-6%", true, QTABLE_STRING_TYPE,7)
-	 AddColumn (MyAssetID, 20, "-3%", true, QTABLE_STRING_TYPE,7)
-	 AddColumn (MyAssetID, 21, "ПРОДАТЬ!!!", true, QTABLE_STRING_TYPE,15)
-	 AddColumn (MyAssetID, 22, "", true, QTABLE_STRING_TYPE,1)
-	 AddColumn (MyAssetID, 23, "v1", true, QTABLE_STRING_TYPE,10)
-	 AddColumn (MyAssetID, 24, "v2", true, QTABLE_STRING_TYPE,10)
-	 AddColumn (MyAssetID, 25, "v5", true, QTABLE_STRING_TYPE,10)
-	 AddColumn (MyAssetID, 26, "v30", true, QTABLE_STRING_TYPE,10)
-	 AddColumn (MyAssetID, 27, "v60", true, QTABLE_STRING_TYPE,10)
-	 AddColumn (MyAssetID, 28, "v300", true, QTABLE_STRING_TYPE,10)
+	AddColumn (MyAssetID, 1, "Тикер", true, QTABLE_STRING_TYPE,8)
+	AddColumn (MyAssetID, 2, "Класс", true, QTABLE_STRING_TYPE,8)
+	AddColumn (MyAssetID, 3, "Планка", true, QTABLE_STRING_TYPE,9)
+	AddColumn (MyAssetID, 4, "Объем <", true, QTABLE_STRING_TYPE,12)	 
+	AddColumn (MyAssetID, 5, "Продать л", true, QTABLE_STRING_TYPE,12)
+	AddColumn (MyAssetID, 6, "Наличие", true, QTABLE_STRING_TYPE,12)
+	AddColumn (MyAssetID, 7, "В ордерах", true, QTABLE_STRING_TYPE,12)	 
+	AddColumn (MyAssetID, 8, "На планке", true, QTABLE_STRING_TYPE,12)
+	AddColumn (MyAssetID, 9, "Объем (дн)", true, QTABLE_STRING_TYPE,13)
+	AddColumn (MyAssetID, 10, "My V5", true, QTABLE_STRING_TYPE,10)
+	AddColumn (MyAssetID, 11, "v1", true, QTABLE_STRING_TYPE,6)
+	AddColumn (MyAssetID, 12, "v5", true, QTABLE_STRING_TYPE,6)
+	AddColumn (MyAssetID, 13, "v60", true, QTABLE_STRING_TYPE,6)
+	AddColumn (MyAssetID, 14, "v300", true, QTABLE_STRING_TYPE,6)	
+	AddColumn (MyAssetID, 15, "", true, QTABLE_STRING_TYPE,10)
+	AddColumn (MyAssetID, 16, "Запустить", true, QTABLE_STRING_TYPE,15)	 
+	AddColumn (MyAssetID, 17, "", true, QTABLE_STRING_TYPE,10)
+	AddColumn (MyAssetID, 18, "", true, QTABLE_STRING_TYPE,1)
+	
+	AddColumn (MyAssetID, 19, "min", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 20, "-20", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 21, "-15", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 22, "-12", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 23, "-10", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 24, "-7%", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 25, "-5%", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 26, "-3%", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 27, "-2%", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 28, "-1%", true, QTABLE_STRING_TYPE,5)
+	
+	AddColumn (MyAssetID, 29, "+1%", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 30, "+2%", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 31, "+3%", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 32, "+5%", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 33, "+7%", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 34, "+10", true, QTABLE_STRING_TYPE,5)	
+	AddColumn (MyAssetID, 35, "+12", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 36, "+15", true, QTABLE_STRING_TYPE,5)
+	AddColumn (MyAssetID, 37, "+20", true, QTABLE_STRING_TYPE,5)	
+	AddColumn (MyAssetID, 38, "max", true, QTABLE_STRING_TYPE,5)
+	
+	AddColumn (MyAssetID, 39, "КУПИТЬ", true, QTABLE_STRING_TYPE,12)	
+	AddColumn (MyAssetID, 40, "ПРОДАТЬ", true, QTABLE_STRING_TYPE,12)	
 	 
 	CreateWindow(MyAssetID)	
-	
-	if TegBrocker == "None" then 
-		SetWindowPos(MyAssetID,1520,0,1020,1254)										-- Вывод таблицы. Отступ слева*отступ сверху*ширина*высота таблицы
-	else
-		SetWindowPos(MyAssetID,981,0,1550,510)										-- Вывод таблицы. Отступ слева*отступ сверху*ширина*высота таблицы
-	end 	
+	SetWindowPos(MyAssetID,981,0,1550,310)										-- Вывод таблицы. Отступ слева*отступ сверху*ширина*высота таблицы
 	SetWindowCaption(MyAssetID, "Мои акции")
 
 
@@ -100,11 +110,7 @@ function OnInit()
 	AddColumn (KomCentrID, 1, "Описание/Действие", true, QTABLE_STRING_TYPE,31)	-- Параметр
 	AddColumn (KomCentrID, 2, "Результат", true, QTABLE_STRING_TYPE,15)			-- Значение параметра
 	CreateWindow(KomCentrID)
-	if TegBrocker == "None" then 
-		SetWindowPos(KomCentrID,681,0,286,510)										-- Вывод таблицы. Отступ слева*отступ сверху*ширина*высота таблицы
-	else
-		SetWindowPos(KomCentrID,691,0,290,510)										-- Вывод таблицы. Отступ слева*отступ сверху*ширина*высота таблицы
-	end 
+	SetWindowPos(KomCentrID,691,0,290,310)										-- Вывод таблицы. Отступ слева*отступ сверху*ширина*высота таблицы
 	SetWindowCaption(KomCentrID, "КОМАНДНЫЙ ЦЕНТР ПЛАНКА")							-- Название таблицы
 	
 	InsertRow(KomCentrID,1)
@@ -156,6 +162,8 @@ function OnStop()											--выполняется при остановке программы из окна "ДОСТУ
 	DestroyTable(MyAssetID)	
 	DestroyTable(PlankaMinusID)
 	DestroyTable(My_lot_for_saleID)
+	DestroyTable(Lotov_Podryad_ID)
+	DestroyTable(StockID)	
 	is_run = false											--остановка цикла	
 end
 

@@ -3,16 +3,20 @@ function Body()
 	tickers_updated = {}
 	
     while isConnected() ~= 1 do
-        sleep(5000)
+        signalCounter_Connected = signalCounter_Connected+1		
         message(TegBrocker..": Нет соединения с сервером")
-        local pathSound = getScriptPath().."\\song\\net-soedineniya-ili-abonent-nedostupen-24915.wav" -- звук для второго сигнала
-        local check_sound = GetCell(KomCentrID, 10, 2).image
-        if check_sound == "Включена" then
-            SendMessage(TegBrocker, " Нет соединения с сервером", pathSound)
-        else
-            SendMessage(TegBrocker, " Нет соединения с сервером")
-        end
+		if signalCounter_Connected ==1 then 
+			local check_sound = GetCell(KomCentrID, 10, 2).image
+			if check_sound == "Включена" then
+				local pathSound = getScriptPath().."\\song\\net-soedineniya-ili-abonent-nedostupen-24915.wav" -- звук, если пропало соединение с сервером.
+				SendMessage(TegBrocker, " Нет соединения с сервером", pathSound)
+			else
+				SendMessage(TegBrocker, " Нет соединения с сервером")
+			end
+		end 	
+		sleep(5000)
     end
+	signalCounter_Connected = 0
 
     if WriteTable == 1 then  -- Первоначальное заполнение таблиц
 		ClearLogFile() -- очистка файда временных логов
@@ -72,19 +76,19 @@ function MyAssetStock()
 				end						
 				
 				-- записываем полученные данные в таблицу
-				SetCell(MyAssetID, i, 23, tostring(v1))-- объемы за 1,2,5,30,60,300 секунд
-				SetCell(MyAssetID, i, 24, tostring(v2))
-				SetCell(MyAssetID, i, 25, tostring(v5))
-				SetCell(MyAssetID, i, 26, tostring(v30))
-				SetCell(MyAssetID, i, 27, tostring(v60))
-				SetCell(MyAssetID, i, 28, tostring(v300))
+				SetCell(MyAssetID, i, 11, tostring(v1))-- объемы за 1,2,5,30,60,300 секунд
+				--SetCell(MyAssetID, i, 13, tostring(v2))
+				SetCell(MyAssetID, i, 12, tostring(v5))
+				--SetCell(MyAssetID, i, 15, tostring(v30))
+				SetCell(MyAssetID, i, 13, tostring(v60))
+				SetCell(MyAssetID, i, 14, tostring(v300))
 				SetCell(MyAssetID, i, 9, tostring(vol_today_lots))
 				
 				local check_sound = GetCell(KomCentrID, 10, 2).image -- флаг включения звукового сопровождения
 
 				-- Получаем главный сигнал. Если меньше заданного количества лотов
 				--==================================
-				local combat_mode = tonumber(GetCell(MyAssetID, i, 17).image) or 0 -- получаем флаг боевого режима (Запустить)				
+				local combat_mode = tonumber(GetCell(MyAssetID, i, 16).image) or 0 -- получаем флаг боевого режима (Запустить)				
 				
 				local signal_1 = 0
 				local lot_for_planka = tonumber(GetCell(MyAssetID, i, 8).image) or 0 -- получить количество лотов на планке
@@ -96,7 +100,7 @@ function MyAssetStock()
 					message("signalCounter1 = "..signalCounter1)
 					if signalCounter1 ==1 then -- сигнал высылаем 1 раз
 						if check_sound =="Включена" then
-							local pathSound = getScriptPath().."\\song\\zvuk-politseyskoy-sirenyi-bez-postoronnego-shuma.wav" -- звук для третьего  сигнала
+							local pathSound = getScriptPath().."\\song\\kosmicheskiy-signal-svyazi.wav" -- звук для первого сигнала. (осталось недостаточно объема на планке.)
 							SendMessage(ticker, " Сигнал:  Осталось мало объема на планке. СРОЧНО!!!", pathSound)
 						else
 							SendMessage(ticker, " Сигнал:  Осталось мало объема на планке. СРОЧНО!!!")
@@ -115,7 +119,7 @@ function MyAssetStock()
 				
 				-- Получаем подтверждение объемов
 				local signal_2 = 0
-				vol_5_min = tonumber(GetCell(MyAssetID, i, 13).image) or 0 -- вручную заданный в таблице триггер объема. если за 5 мин реальный оборот выше этого, включается сигнал.
+				vol_5_min = tonumber(GetCell(MyAssetID, i, 10).image) or 0 -- вручную заданный в таблице триггер объема. если за 5 мин реальный оборот выше этого, включается сигнал.
 				if vol_5_min == 0 then
 					message("Не задан 5 минутный объем в колонке 'Объем 5 мин' для акции ".. ticker)
 				end 	
@@ -126,7 +130,7 @@ function MyAssetStock()
 					signalCounter2 = signalCounter2 + 1 -- Увеличиваем счётчик на 1
 					if signalCounter2 ==1 then -- сигнал высылаем 1 раз
 						if check_sound =="Включена" then
-							local pathSound = getScriptPath().."\\song\\zvuk-politseyskoy-sirenyi-bez-postoronnego-shuma.wav" -- звук для второго сигнала
+							local pathSound = getScriptPath().."\\song\\korotkiy-zvonkiy-zvuk-uvedomleniya.wav" -- звук для второго сигнала (объем за 5 мин.)
 							SendMessage(ticker, " Сигнал:  Осталось мало объема на планке. СРОЧНО!!!", pathSound)
 						else
 							SendMessage(ticker, " Сигнал:  Осталось мало объема на планке. СРОЧНО!!!")
@@ -148,7 +152,9 @@ function MyAssetStock()
 				end 
 				
 				-- ========== ПРОДАЖА!!! ====================================
-				local price_for_sell = plankaMax-100*step -- Выставляем цену продажи на 100 шагов цены ниже планки. (Нужно следить за стоимостью шага !!! Для AMEZ нормально.)
+				local price_for_sell = plankaMax*0.985 -(plankaMax*0.985)%step	-- Цена с проскальзыванием 1.5% от верхней планки.
+
+				
 
 				-- Срабатывает если сошлись два сигнала и включена кнопка "Запустить" (боевой режим). После однократного срабатывания боевой режим переключается в холостой.
 				if signal_1 > 0 and signal_2 > 0 then						
@@ -169,12 +175,14 @@ function MyAssetStock()
 							
 						end 	
 						combat_mode = 0
-						SetCell(MyAssetID, i, 17, tostring(combat_mode))
-						SetColor(MyAssetID,i,17,RGB(204, 255, 204),RGB(0,0,0),RGB(204, 255, 204),RGB(0,0,0))
+						SetCell(MyAssetID, i, 16, tostring(combat_mode))
+						SetColor(MyAssetID,i,15,RGB(204, 112, 0),RGB(0,0,0),RGB(204, 112, 0),RGB(0,0,0))
+						SetColor(MyAssetID,i,16,RGB(255, 200, 0),RGB(0,0,0),RGB(255, 200, 0),RGB(0,0,0))						
+						SetColor(MyAssetID,i,17,RGB(204, 112, 0),RGB(0,0,0),RGB(204, 112, 0),RGB(0,0,0))
 						message("Сделка отправлена. Боевой режим ВЫКЛЮЧЕН (Запустить)")
 					 
 					 
-						local pathSound = getScriptPath().."\\song\\signalizatsiya-iz-banka.wav" -- звук после срабатывания всех сигналов
+						local pathSound = getScriptPath().."\\song\\zvuk-pobedyi-vyiigryisha.wav" -- звук после срабатывания всех сигналов
 						if check_sound =="Включена" then
 							SendMessage(ticker, "ПРОДАЖА! ПРОВЕРЬ!!! СРОЧНО!!!", pathSound)
 						else
@@ -345,14 +353,40 @@ function ImportSaleLevelExcel()
 			SetColor(MyAssetID,i, 4,RGB(255, 255, 153),RGB(0,0,0),RGB(255, 255, 153),RGB(0,0,0))
 			SetCell(MyAssetID, i, 5,  s4)
 			SetColor(MyAssetID,i, 5,RGB(255, 255, 153),RGB(0,0,0),RGB(255, 255, 153),RGB(0,0,0))
-			SetCell(MyAssetID, i, 13,  s5)	
-			SetColor(MyAssetID,i, 13,RGB(255, 255, 153),RGB(0,0,0),RGB(255, 255, 153),RGB(0,0,0))	
+			SetCell(MyAssetID, i, 10,  s5)	
+			SetColor(MyAssetID,i, 10,RGB(255, 255, 153),RGB(0,0,0),RGB(255, 255, 153),RGB(0,0,0))	
 
-			SetColor(MyAssetID,i,17,RGB(204, 255, 204),RGB(0,0,0),RGB(204, 255, 204),RGB(0,0,0))
-			SetColor(MyAssetID,i,21,RGB(220, 20, 60),RGB(0,0,0),RGB(220, 20, 60),RGB(0,0,0))	
-			SetColor(MyAssetID,i,18,RGB(128, 255, 128),RGB(0,0,0),RGB(128, 255, 128),RGB(0,0,0))	
-			SetColor(MyAssetID,i,19,RGB(128, 255, 128),RGB(0,0,0),RGB(128, 255, 128),RGB(0,0,0))	
-			SetColor(MyAssetID,i,20,RGB(128, 255, 128),RGB(0,0,0),RGB(128, 255, 128),RGB(0,0,0))				
+			SetColor(MyAssetID,i,15,RGB(204, 112, 0),RGB(0,0,0),RGB(204, 112, 0),RGB(0,0,0))
+			SetColor(MyAssetID,i,16,RGB(255, 200, 0),RGB(0,0,0),RGB(255, 200, 0),RGB(0,0,0))						
+			SetColor(MyAssetID,i,17,RGB(204, 112, 0),RGB(0,0,0),RGB(204, 112, 0),RGB(0,0,0))
+			
+			SetColor(MyAssetID,i,18,RGB(255, 255, 255),RGB(0,0,0),RGB(255, 255, 255),RGB(0,0,0))
+			
+			SetColor(MyAssetID,i,19,RGB(220, 255, 220),RGB(0,0,0),RGB(220, 255, 220),RGB(0,0,0))	
+			SetColor(MyAssetID,i,20,RGB(198, 255, 198),RGB(0,0,0),RGB(198, 255, 198),RGB(0,0,0))	
+			SetColor(MyAssetID,i,21,RGB(176, 255, 176),RGB(0,0,0),RGB(176, 255, 176),RGB(0,0,0))	
+			SetColor(MyAssetID,i,22,RGB(154, 255, 154),RGB(0,0,0),RGB(154, 255, 154),RGB(0,0,0))
+			SetColor(MyAssetID,i,23,RGB(132, 255, 132),RGB(0,0,0),RGB(132, 255, 132),RGB(0,0,0))
+			SetColor(MyAssetID,i,24,RGB(110, 255, 110),RGB(0,0,0),RGB(110, 255, 110),RGB(0,0,0))	
+			SetColor(MyAssetID,i,25,RGB(88, 255, 88),RGB(0,0,0),RGB(88, 255, 88),RGB(0,0,0))	
+			SetColor(MyAssetID,i,26,RGB(66, 255, 66),RGB(0,0,0),RGB(66, 255, 66),RGB(0,0,0))
+			SetColor(MyAssetID,i,27,RGB(44, 255, 44),RGB(0,0,0),RGB(44, 255, 44),RGB(0,0,0))
+			SetColor(MyAssetID,i,28,RGB(22, 255, 22),RGB(0,0,0),RGB(22, 255, 22),RGB(0,0,0))
+			
+			SetColor(MyAssetID,i,29,RGB(255, 22, 22),RGB(0,0,0),RGB(255, 22, 22),RGB(0,0,0))			
+			SetColor(MyAssetID,i,30,RGB(255, 44, 44),RGB(0,0,0),RGB(255, 44, 44),RGB(0,0,0))			
+			SetColor(MyAssetID,i,31,RGB(255, 66, 66),RGB(0,0,0),RGB(255, 66, 66),RGB(0,0,0))			
+			SetColor(MyAssetID,i,32,RGB(255, 88, 88),RGB(0,0,0),RGB(255, 88, 88),RGB(0,0,0))			
+			SetColor(MyAssetID,i,33,RGB(255, 110, 110),RGB(0,0,0),RGB(255, 110, 110),RGB(0,0,0))			
+			SetColor(MyAssetID,i,34,RGB(255, 132, 132),RGB(0,0,0),RGB(255, 132, 132),RGB(0,0,0))			
+			SetColor(MyAssetID,i,35,RGB(255, 154, 154),RGB(0,0,0),RGB(255, 154, 154),RGB(0,0,0))			
+			SetColor(MyAssetID,i,36,RGB(255, 176, 176),RGB(0,0,0),RGB(255, 176, 176),RGB(0,0,0))			
+			SetColor(MyAssetID,i,37,RGB(255, 198, 198),RGB(0,0,0),RGB(255, 198, 198),RGB(0,0,0))	
+			SetColor(MyAssetID,i,38,RGB(255, 220, 220),RGB(0,0,0),RGB(255, 220, 220),RGB(0,0,0))	
+			
+			SetColor(MyAssetID,i,39,RGB(0, 255, 0),RGB(0,0,0),RGB(0, 255, 0),RGB(0,0,0))			
+			SetColor(MyAssetID,i,40,RGB(220, 20, 60),RGB(0,0,0),RGB(220, 20, 60),RGB(0,0,0))
+			
 		end
 		i = i+1
 	end
@@ -384,7 +418,7 @@ function ExportSaleLevelExcel()
 			local class 			= tostring(GetCell(MyAssetID, i, 2).image)
 			local min_vol_bid 		= tostring(GetCell(MyAssetID, i, 4).image)
 			local quantityForSale 	= tostring(GetCell(MyAssetID, i, 5).image)
-			local vol_lotovPodryad 		= tostring(GetCell(MyAssetID, i, 13).image)
+			local vol_lotovPodryad 		= tostring(GetCell(MyAssetID, i, 10).image)
 
 			if i == 1 then
 				fileCSV1:write("Тикер"..";".."Класс"..";".."|".."Мин уровень объема в лотах на бидах".."|"..";".."|".."Продать объем в лотах".."|"..";".."|".."Лотов подряд".."|".."\n")
@@ -556,19 +590,29 @@ end
 
 function ProcessingTableAsset(line, column)	-- Командный центр
 	local command = GetCell(MyAssetID, line, column).image
-	local plankaMinus = GetCell(MyAssetID, line, column).image
-	if plankaMinus==nil or plankaMinus=="" then plankaMinus = 0 end
-	plankaMinus = tonumber(plankaMinus)
 	local ticker = tostring(GetCell(MyAssetID, line, 1).image)
-    local class = tostring(GetCell(MyAssetID, line, 2).image)	
+    local class = tostring(GetCell(MyAssetID, line, 2).image)
+	local step = tonumber(getParamEx(class,ticker,"SEC_PRICE_STEP").param_value) -- шаг  цены
+	local plankaMax = tonumber(getParamEx(class, ticker, "PRICEMAX").param_value)  -- максимально возможная цена
+	local plankaMin = tonumber(getParamEx(class, ticker, "PRICEMIN").param_value)  -- минимально возможная цена
+	
+	local offer = tonumber(getParamEx(class, ticker, "OFFER").param_value) 
+	if offer == 0 then  --если нет офферов, для безопасности используем максимальную цену (продажи расчитывать только от офферов!!!)
+		offer = plankaMax 
+		message ("Офферов нет. Оффера теперь равны максимальной планке")
+	end
+	
+	local bid = tonumber(getParamEx(class, ticker, "BID").param_value) 
+	if bid == 0 then   --если нет бидов, для безопасности используем минимальную цену (покупки расчитывать только от бидов!!!)
+		bid = plankaMin 
+		message ("Бидов нет. Биды теперь равны минимальной планке")
+	end
+
 	local bidDEPTH = tonumber(getParamEx(class, ticker, "BIDDEPTH").param_value) -- Количество лотов на лучшем BID
-	local step = tonumber(getParamEx(class,ticker,"SEC_PRICE_STEP").param_value)
-	local my_lot = tostring(GetCell(MyAssetID, line, 6).image)
-	if my_lot==nil or my_lot=="" then my_lot = 0 end
-	local my_lot_for_sale = tostring(GetCell(MyAssetID, line, 5).image)
-	if my_lot_for_sale==nil or my_lot_for_sale=="" then my_lot_for_sale = 0 end
-	local vol_2_sec = tostring(GetCell(MyAssetID, line, 13).image)
-	if vol_2_sec==nil or vol_2_sec=="" then vol_2_sec = 0 end
+	local my_lot = tonumber(GetCell(MyAssetID, line, 6).image) or 0
+	local my_lot_for_sale = tonumber(GetCell(MyAssetID, line, 5).image) or 0
+	local vol_5_min = tonumber(GetCell(MyAssetID, line, 10).image) or 0
+
 	
 	if column == 2 then
 		DeleteRow(MyAssetID, line)
@@ -586,8 +630,8 @@ function ProcessingTableAsset(line, column)	-- Командный центр
 		CreateWindow(PlankaMinusID)
 		SetWindowPos(PlankaMinusID,1000,300,500,150)											-- Вывод таблицы. Отступ слева*отступ сверху*ширина*высота таблицы
 		SetWindowCaption(PlankaMinusID, "Граница объема на планке")										-- Название таблицы		
-		if plankaMinus == 0 then 
-			plankaMinus = math.ceil(bidDEPTH/5)
+		if plankaMin == 0 then 
+			plankaMin = math.ceil(bidDEPTH/5)
 		end 			
 		InsertRow(PlankaMinusID, 1)
 		SetCell(PlankaMinusID,1,4,ticker) 	
@@ -600,7 +644,7 @@ function ProcessingTableAsset(line, column)	-- Командный центр
 		SetCell(PlankaMinusID,4,1,"—100") 
 		SetCell(PlankaMinusID,4,2,"—10") 
 		SetCell(PlankaMinusID,4,3,"—1") 
-		SetCell(PlankaMinusID,4,4,tostring(plankaMinus)) 
+		SetCell(PlankaMinusID,4,4,tostring(plankaMin)) 
 		SetCell(PlankaMinusID,4,5,"+1")
 		SetCell(PlankaMinusID,4,6,"+10") 
 		SetCell(PlankaMinusID,4,7,"+100") 
@@ -681,19 +725,19 @@ function ProcessingTableAsset(line, column)	-- Командный центр
 		SetColor(My_lot_for_saleID,5,6,RGB(245,154,217),QTABLE_DEFAULT_COLOR,RGB(245,154,227),QTABLE_DEFAULT_COLOR)
 		SetColor(My_lot_for_saleID,5,7,RGB(240,108,203),QTABLE_DEFAULT_COLOR,RGB(240,108,213),QTABLE_DEFAULT_COLOR)
 
-	elseif column == 13 then
+	elseif column == 10 then
 		DestroyTable(Lotov_Podryad_ID)
 		Lotov_Podryad_ID = AllocTable()														-- инициализация таблицы, с моими текущими позициями	
 		AddColumn (Lotov_Podryad_ID, 1, "", true, QTABLE_STRING_TYPE,10)
 		AddColumn (Lotov_Podryad_ID, 2, "", true, QTABLE_STRING_TYPE,10)
 		AddColumn (Lotov_Podryad_ID, 3, "", true, QTABLE_STRING_TYPE,10)
-		AddColumn (Lotov_Podryad_ID, 4, "Объем в двух смежных секундах", true, QTABLE_STRING_TYPE,20)
+		AddColumn (Lotov_Podryad_ID, 4, "Объем в пяти минутах", true, QTABLE_STRING_TYPE,20)
 		AddColumn (Lotov_Podryad_ID, 5, "", true, QTABLE_STRING_TYPE,10)
 		AddColumn (Lotov_Podryad_ID, 6, "", true, QTABLE_STRING_TYPE,10)
 		AddColumn (Lotov_Podryad_ID, 7, "", true, QTABLE_STRING_TYPE,10)		
 		CreateWindow(Lotov_Podryad_ID)
 		SetWindowPos(Lotov_Podryad_ID,1200,300,500,150)											-- Вывод таблицы. Отступ слева*отступ сверху*ширина*высота таблицы
-		SetWindowCaption(Lotov_Podryad_ID, "Объем в двух смежных секундах")										-- Название таблицы				
+		SetWindowCaption(Lotov_Podryad_ID, "Объем в пяти минутах")										-- Название таблицы				
 		InsertRow(Lotov_Podryad_ID, 1)
 		SetCell(Lotov_Podryad_ID,1,4,ticker) 	
 		InsertRow(Lotov_Podryad_ID, 2)
@@ -705,7 +749,7 @@ function ProcessingTableAsset(line, column)	-- Командный центр
 		SetCell(Lotov_Podryad_ID,4,1,"—100") 
 		SetCell(Lotov_Podryad_ID,4,2,"—10") 
 		SetCell(Lotov_Podryad_ID,4,3,"—1") 
-		SetCell(Lotov_Podryad_ID,4,4,tostring(vol_2_sec)) 
+		SetCell(Lotov_Podryad_ID,4,4,tostring(vol_5_min)) 
 		SetCell(Lotov_Podryad_ID,4,5,"+1")
 		SetCell(Lotov_Podryad_ID,4,6,"+10") 
 		SetCell(Lotov_Podryad_ID,4,7,"+100") 
@@ -732,54 +776,88 @@ function ProcessingTableAsset(line, column)	-- Командный центр
 		SetColor(Lotov_Podryad_ID,5,6,RGB(245,154,217),QTABLE_DEFAULT_COLOR,RGB(245,154,227),QTABLE_DEFAULT_COLOR)
 		SetColor(Lotov_Podryad_ID,5,7,RGB(240,108,203),QTABLE_DEFAULT_COLOR,RGB(240,108,213),QTABLE_DEFAULT_COLOR)			
 		
-	elseif column == 17 then
-		local combat_mode = GetCell(MyAssetID, line, 17).image
+	elseif column == 16 then
+		local combat_mode = GetCell(MyAssetID, line, 16).image
 		if combat_mode == nil or combat_mode == "" or combat_mode == "0" then 
 			combat_mode = 1
-			SetColor(MyAssetID,line,17,RGB(0, 255, 0),RGB(0,0,0),RGB(0, 255, 0),RGB(0,0,0))
+			SetColor(MyAssetID,line,15,RGB(0, 128, 0),RGB(0,0,0),RGB(0, 128, 0),RGB(0,0,0))
+			SetColor(MyAssetID,line,16,RGB(0, 178, 0),RGB(255,255,255),RGB(0, 178, 0),RGB(255,255,255))
+			SetColor(MyAssetID,line,17,RGB(0, 128, 0),RGB(0,0,0),RGB(0, 128, 0),RGB(0,0,0))
 		else
 			combat_mode = 0
-			SetColor(MyAssetID,line,17,RGB(204, 255, 204),RGB(0,0,0),RGB(204, 255, 204),RGB(0,0,0))
+			SetColor(MyAssetID,line,15,RGB(204, 112, 0),RGB(0,0,0),RGB(204, 112, 0),RGB(0,0,0))
+			SetColor(MyAssetID,line,16,RGB(255, 200, 0),RGB(0,0,0),RGB(255, 200, 0),RGB(0,0,0))						
+			SetColor(MyAssetID,line,17,RGB(204, 112, 0),RGB(0,0,0),RGB(204, 112, 0),RGB(0,0,0))
 		end 	
-		SetCell(MyAssetID, line, 17, tostring(combat_mode)) -- боевой режим. "ЗАПУСТИТЬ"
-	elseif column == 18 then  -- "-10%"
-		local emit = 	GetCell(MyAssetID, line, 1).image
-		local class = 	GetCell(MyAssetID, line, 2).image
-		local qty = 	tonumber(GetCell(MyAssetID, line, 5).image) or 0
-		if qty==0 then message("В таблице не задан объем покупки") end 
-		local plankaMax = tonumber(getParamEx(class, ticker, "PRICEMAX").param_value)  -- цена вехней планки (не проверяем на nil, так как не имеет смысла, если системой не передается планка)
-		local step = tonumber(getParamEx(class,ticker,"SEC_PRICE_STEP").param_value)
-		local price = plankaMax*0.9-(plankaMax*0.9)%step
-		NewOrder("B", emit,class,qty,price,"310")		
-	elseif column == 19 then  -- "-6%"
-		local emit = 	GetCell(MyAssetID, line, 1).image
-		local class = 	GetCell(MyAssetID, line, 2).image
-		local qty = 	tonumber(GetCell(MyAssetID, line, 5).image) or 0
-		if qty==0 then message("В таблице не задан объем покупки") end 
-		local plankaMax = tonumber(getParamEx(class, ticker, "PRICEMAX").param_value)  -- цена вехней планки (не проверяем на nil, так как не имеет смысла, если системой не передается планка)
-		local step = tonumber(getParamEx(class,ticker,"SEC_PRICE_STEP").param_value)
-		local price = plankaMax*0.94-(plankaMax*0.94)%step
-		NewOrder("B", emit,class,qty,price,"306")
-	elseif column == 20 then  -- "-3%"
-		local emit = 	GetCell(MyAssetID, line, 1).image
-		local class = 	GetCell(MyAssetID, line, 2).image
-		local qty = 	tonumber(GetCell(MyAssetID, line, 5).image) or 0
-		if qty==0 then message("В таблице не задан объем покупки") end 
-		local plankaMax = tonumber(getParamEx(class, ticker, "PRICEMAX").param_value)  -- цена вехней планки (не проверяем на nil, так как не имеет смысла, если системой не передается планка)
-		local step = tonumber(getParamEx(class,ticker,"SEC_PRICE_STEP").param_value)
-		local price = plankaMax*0.97-(plankaMax*0.97)%step
-		NewOrder("B", emit,class,qty,price,"303")
-	elseif column == 21 then -- "ПРОДАТЬ!!!"
-		local emit = 	GetCell(MyAssetID, line, 1).image
-		local class = 	GetCell(MyAssetID, line, 2).image
-		local qty = 	tonumber(GetCell(MyAssetID, line, 5).image) or 0
-		if qty==0 then message("В таблице не задан объем продажи") end 
-		local plankaMin = tonumber(getParamEx(class, ticker, "PRICEMIN").param_value)  -- цена нижней планки (не проверяем на nil, так как не имеет смысла, если системой не передается планка). Для продажи по рынку
-		local step = tonumber(getParamEx(class,ticker,"SEC_PRICE_STEP").param_value)
-		NewOrder("S", emit,class,qty,plankaMin,"303")		
+		SetCell(MyAssetID, line, 16, tostring(combat_mode)) -- боевой режим. "ЗАПУСТИТЬ"
+		
+	elseif column == 19 then  -- "min"
+		NewOrder("B", ticker,class,my_lot_for_sale,plankaMin,"310")					
+	elseif column == 20 then  -- "-20%"
+		local price = bid*0.8-(bid*0.8)%step
+		NewOrder("B", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 21 then  -- "-15%"
+		local price = bid*0.85-(bid*0.85)%step
+		NewOrder("B", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 22 then  -- "-12%"
+		local price = bid*0.88-(bid*0.88)%step
+		NewOrder("B", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 23 then  -- "-10%"
+		local price = bid*0.9-(bid*0.9)%step
+		NewOrder("B", ticker, class, my_lot_for_sale, price, "310")		
+	elseif column == 24 then  -- "-7%"
+		local price = bid*0.93-(bid*0.93)%step
+		NewOrder("B", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 25 then  -- "-5%"
+		local price = bid*0.95-(bid*0.95)%step
+		NewOrder("B", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 26 then  -- "-3%"
+		local price = bid*0.97-(bid*0.97)%step
+		NewOrder("B", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 27 then  -- "-2%"
+		local price = bid*0.98-(bid*0.98)%step
+		NewOrder("B", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 28 then  -- "-1%"
+		local price = bid*0.99-(bid*0.99)%step
+		NewOrder("B", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 29 then  -- "+1%"
+		local price = offer*1.01-(offer*1.01)%step
+		NewOrder("S", ticker, class, my_lot_for_sale, price, "310")			
+	elseif column == 30 then  -- "+2%"
+		local price = offer*1.02-(offer*1.02)%step
+		NewOrder("S", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 31 then  -- "+3%"
+		local price = offer*1.03-(offer*1.03)%step
+		NewOrder("S", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 32 then  -- "+5%"
+		local price = offer*1.05-(offer*1.05)%step
+		NewOrder("S", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 33 then  -- "+7%"
+		local price = offer*1.07-(offer*1.07)%step
+		NewOrder("S", ticker, class, my_lot_for_sale, price, "310")			
+	elseif column == 34 then  -- "+10%"
+		local price = offer*1.10-(offer*1.10)%step
+		NewOrder("S", ticker, class, my_lot_for_sale, price, "310")	
+	elseif column == 35 then  -- "+12%"
+		local price = offer*1.12-(offer*1.12)%step
+		NewOrder("S", ticker, class, my_lot_for_sale, price, "310")			
+	elseif column == 36 then  -- "+15%"
+		local price = offer*1.15-(offer*1.15)%step
+		NewOrder("S", ticker, class, my_lot_for_sale, price, "310")			
+	elseif column == 37 then  -- "+20%"
+		local price = offer*1.2-(offer*1.2)%step
+		NewOrder("S", ticker, class, my_lot_for_sale, price, "310")			
+	elseif column == 38 then  -- "+max"
+		NewOrder("S", ticker, class, my_lot_for_sale, plankaMax, "310")			
+
+	elseif column == 39 then  -- "0%" "КУПИТЬ" По рынку
+		NewOrder("B", ticker, class, my_lot_for_sale, plankaMax, "310")
+	elseif column == 40 then -- "ПРОДАТЬ!!! по рынку"
+		NewOrder("S", ticker, class, my_lot_for_sale, plankaMin, "310")	
 	end
 
 end
+
 
 function ProcessingTableKC(par1, par2)	-- Командный центр
 	local command = GetCell(KomCentrID, par1, par2).image
@@ -788,23 +866,23 @@ function ProcessingTableKC(par1, par2)	-- Командный центр
 		ProcessingTableStock(par1, 2) 
 	elseif command == "СОХРАНИТЬ" then
 		ExportSaleLevelExcel()
-	elseif 	command =="Открыть файл Excel" then 
+	elseif command =="Открыть файл Excel" then 
 		io.popen("start " ..SaleLevelExport) 		
 	elseif 	command =="Открыть каталог робота" then 
 		os.execute("start " ..getScriptPath())	
-	elseif 	command =="ОБНОВИТЬ ПОКАЗАТЕЛИ" then
+	elseif command =="ОБНОВИТЬ ПОКАЗАТЕЛИ" then
 		Clear(MyAssetID)
 		WriteTable=1	
-	elseif 	command =="Звуковая сигнализация" then
-		check_sound = GetCell(KomCentrID, par1, 2).image
+	elseif command =="Звуковая сигнализация" then
+		local check_sound = GetCell(KomCentrID, par1, 2).image
 		if check_sound == "Включена" then		
 			SetCell(KomCentrID,par1, 2, "Выключена")
 			SetColor(KomCentrID,par1,QTABLE_NO_INDEX,RGB(255, 102, 102),RGB(255,255,255),RGB(255, 102, 102),RGB(255,255,255))
 		else
 			SetCell(KomCentrID,par1, 2, "Включена")
 			SetColor(KomCentrID,par1,QTABLE_NO_INDEX,RGB(100, 150, 100),RGB(255,255,255),RGB(110, 160, 110),RGB(255,255,255))
-		end 
-	elseif 	command =="Справка" then 
+		end		
+	elseif command =="Справка" then 
 		local filepath = getScriptPath().."\\readmy.txt"
 		local f=io.open(filepath,"r")
 		if f~=nil then 
@@ -816,7 +894,7 @@ function ProcessingTableKC(par1, par2)	-- Командный центр
 			file:close()
 			io.popen("start  " ..filepath) 
 		end	
-	elseif 	command =="Купить -15% (автомат)" then	
+	elseif command =="Купить -15% (автомат)" then	
 		if Avtomat_buy ==0 then
 			Avtomat_buy = 1
 			SetCell(KomCentrID,12, 2, tostring(Avtomat_buy))
@@ -1015,5 +1093,5 @@ end
 	end 	
 	
 	SetCell(Lotov_Podryad_ID, 4, 4, tostring(lot))
-	SetCell(MyAssetID, tonumber(stroka), 13, tostring(lot))
+	SetCell(MyAssetID, tonumber(stroka), 10, tostring(lot))
 end
